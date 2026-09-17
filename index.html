@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Auditoría de Inventario</title>
+<style>
+  :root {
+    --tinta: #0f172a;
+    --tinta-suave: #1e293b;
+    --ambar: #f59e0b;
+    --ambar-oscuro: #b45309;
+    --texto: #0f172a;
+    --texto-suave: #475569;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+    color: var(--texto);
+    background: #f8fafc;
+    overflow-x: hidden;
+  }
+
+  a { text-decoration: none; }
+
+  ::selection { background: #fde68a; color: var(--texto); }
+  :focus-visible { outline: 2px solid var(--ambar-oscuro); outline-offset: 2px; }
+
+  /* ---------- Header ---------- */
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 6vw;
+    background: rgba(248, 250, 252, 0.85);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid #e2e8f0;
+  }
+  .marca {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    font-size: 16px;
+  }
+  .marca .icono {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    background: var(--ambar);
+    color: var(--tinta);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    font-weight: 800;
+    box-shadow: 0 4px 14px rgba(245, 158, 11, 0.35);
+  }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    transition: all 0.15s ease;
+    border: none;
+    cursor: pointer;
+  }
+  .btn-primario {
+    background: var(--ambar);
+    color: var(--tinta);
+    box-shadow: 0 6px 18px rgba(245, 158, 11, 0.35);
+  }
+  .btn-primario:hover {
+    background: #fbbf24;
+    box-shadow: 0 8px 24px rgba(245, 158, 11, 0.4);
+    transform: translateY(-1px);
+  }
+  .btn-ghost {
+    color: var(--tinta);
+    background: transparent;
+    border: 1px solid #e2e8f0;
+  }
+  .btn-ghost:hover { background: #f8fafc; }
+
+  /* ---------- Hero ---------- */
+  .hero {
+    position: relative;
+    overflow: hidden;
+    padding: 90px 6vw 110px;
+    background: var(--tinta);
+    color: white;
+    text-align: center;
+  }
+  .hero::before {
+    content: "";
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(90px);
+    pointer-events: none;
+    width: 480px; height: 480px;
+    top: -220px; right: -120px;
+    background: rgba(245, 158, 11, 0.16);
+  }
+  .hero-contenido { position: relative; max-width: 780px; margin: 0 auto; }
+  .badge-hero {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.25);
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 22px;
+  }
+  .badge-hero .punto {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: #4ade80;
+    box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.25);
+  }
+  .hero h1 {
+    font-size: clamp(32px, 5vw, 52px);
+    line-height: 1.1;
+    font-weight: 800;
+    margin: 0 0 18px;
+    letter-spacing: -0.02em;
+  }
+  .hero p {
+    font-size: clamp(15px, 2vw, 18px);
+    color: rgba(255,255,255,0.85);
+    max-width: 600px;
+    margin: 0 auto 34px;
+    line-height: 1.6;
+  }
+  .hero-acciones {
+    display: flex;
+    gap: 14px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .hero-acciones .btn-primario {
+    font-size: 15px;
+    padding: 13px 26px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+  }
+  .hero-acciones .btn-secundario {
+    padding: 13px 26px;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.4);
+    color: white;
+    font-weight: 600;
+    font-size: 15px;
+  }
+  .hero-acciones .btn-secundario:hover { background: rgba(255,255,255,0.1); }
+
+  /* ---------- Barra de hechos ---------- */
+  /* A propósito NO son tarjetas de métrica (número grande + etiqueta +
+     acento) — es una franja tipográfica continua, sin cajas ni sombras
+     individuales, para no caer en la plantilla genérica de "stat cards". */
+  .barra-hechos {
+    max-width: 900px;
+    margin: -34px auto 0;
+    position: relative;
+    z-index: 5;
+    background: white;
+    border-radius: 14px;
+    box-shadow: 0 20px 45px rgba(15, 23, 42, 0.12);
+    display: flex;
+    flex-wrap: wrap;
+  }
+  .hecho {
+    flex: 1 1 200px;
+    padding: 22px 24px;
+    border-right: 1px solid #f1f5f9;
+  }
+  .hecho:last-child { border-right: none; }
+  .hecho .valor { font-size: 17px; font-weight: 800; color: var(--texto); }
+  .hecho .etiqueta { font-size: 13px; color: var(--texto-suave); margin-top: 2px; }
+
+  /* ---------- Secciones ---------- */
+  section.contenido { padding: 90px 6vw; max-width: 1120px; margin: 0 auto; }
+  .titulo-seccion { max-width: 620px; margin: 0 auto 56px; text-align: center; }
+  .titulo-seccion h2 { font-size: clamp(26px, 3.4vw, 36px); margin: 0 0 12px; font-weight: 800; letter-spacing: -0.01em; }
+  .titulo-seccion p { color: var(--texto-suave); font-size: 15.5px; line-height: 1.6; }
+
+  /* Lista de funciones: filas icono+texto sin marco de tarjeta, para no
+     repetir el default de "grilla de cajas idénticas". */
+  .lista-funciones {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: 48px;
+    row-gap: 40px;
+  }
+  .funcion { display: flex; gap: 18px; align-items: flex-start; }
+  .funcion .icono-funcion {
+    flex-shrink: 0;
+    width: 42px; height: 42px;
+    border-radius: 11px;
+    display: flex; align-items: center; justify-content: center;
+    color: white;
+  }
+  .funcion .icono-funcion svg { width: 22px; height: 22px; }
+  .funcion h3 { margin: 2px 0 6px; font-size: 16px; font-weight: 700; }
+  .funcion p { margin: 0; font-size: 14px; color: var(--texto-suave); line-height: 1.6; }
+
+  .ic-1, .ic-3, .ic-5 { background: var(--ambar-oscuro); }
+  .ic-2, .ic-4, .ic-6 { background: var(--tinta-suave); }
+
+  @media (max-width: 720px) {
+    .lista-funciones { grid-template-columns: 1fr; }
+  }
+
+  /* ---------- Flujo ---------- */
+  .flujo {
+    background: #f8fafc;
+    border-top: 1px solid #f1f5f9;
+    border-bottom: 1px solid #f1f5f9;
+  }
+  .pasos {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 24px;
+    counter-reset: paso;
+  }
+  .paso { position: relative; padding-left: 4px; }
+  .paso .num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    background: var(--tinta);
+    color: var(--ambar);
+    font-weight: 800;
+    font-size: 14px;
+    margin-bottom: 14px;
+  }
+  .paso h4 { margin: 0 0 6px; font-size: 15px; font-weight: 700; }
+  .paso p { margin: 0; font-size: 13.5px; color: var(--texto-suave); line-height: 1.55; }
+
+  /* ---------- CTA final ---------- */
+  .cta-final {
+    margin: 0 6vw 90px;
+    border-radius: 24px;
+    padding: 60px 6vw;
+    text-align: center;
+    background: var(--tinta);
+    color: white;
+    position: relative;
+    overflow: hidden;
+  }
+  .cta-final h2 { font-size: clamp(22px, 3vw, 30px); margin: 0 0 12px; font-weight: 800; }
+  .cta-final p { color: rgba(255,255,255,0.85); margin: 0 0 28px; font-size: 15px; }
+
+  footer {
+    padding: 30px 6vw;
+    text-align: center;
+    font-size: 13px;
+    color: #94a3b8;
+    border-top: 1px solid #e2e8f0;
+  }
+
+  @media (max-width: 640px) {
+    header { padding: 14px 5vw; }
+    .hero { padding: 70px 5vw 90px; }
+    section.contenido { padding: 60px 5vw; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="marca">
+    <span class="icono">A</span>
+    Auditoría de Inventario
+  </div>
+  <a class="btn btn-ghost" href="#" id="link-header">Ingresar</a>
+</header>
+
+<section class="hero">
+  <div class="hero-contenido">
+    <span class="badge-hero"><span class="punto"></span> En vivo mientras se cuenta</span>
+    <h1>Cuenta, concilia y audita tu inventario sin perder trazabilidad</h1>
+    <p>
+      Captura en terreno con lector o cámara, calcula diferencias al instante, reconteo
+      dirigido sin reabrir el inventario, e IRA/ILA listos para tu próxima auditoría.
+    </p>
+    <div class="hero-acciones">
+      <a class="btn btn-primario" href="#" id="link-hero">Ir a la aplicación →</a>
+      <a class="btn-secundario" href="#funciones">Ver funciones</a>
+    </div>
+  </div>
+</section>
+
+<div class="barra-hechos">
+  <div class="hecho"><div class="valor">Trazabilidad completa</div><div class="etiqueta">de cada captura</div></div>
+  <div class="hecho"><div class="valor">IRA / ILA</div><div class="etiqueta">calculados al cerrar</div></div>
+  <div class="hecho"><div class="valor">Aislamiento por empresa</div><div class="etiqueta">multi-tenant</div></div>
+  <div class="hecho"><div class="valor">Reconteo ciego</div><div class="etiqueta">y dirigido</div></div>
+</div>
+
+<section class="contenido" id="funciones">
+  <div class="titulo-seccion">
+    <h2>Una sola herramienta, de la carga inicial al resultado final</h2>
+    <p>Diseñada para equipos de control de inventarios que necesitan velocidad en terreno y rigor en la oficina.</p>
+  </div>
+  <div class="lista-funciones">
+    <div class="funcion">
+      <span class="icono-funcion ic-1">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2M7 12h10"/></svg>
+      </span>
+      <div>
+        <h3>Captura en terreno</h3>
+        <p>Lector físico o cámara, lectura GS1-128, resolución de posición y producto en tiempo real.</p>
+      </div>
+    </div>
+    <div class="funcion">
+      <span class="icono-funcion ic-2">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21V8l9-5 9 5v13M9 21v-6h6v6M3 21h18"/></svg>
+      </span>
+      <div>
+        <h3>Multi-cuenta y multi-inventario</h3>
+        <p>Organiza por cliente, cuenta y proceso — cada inventario con su propio tipo (guiado, ciego o contra stock).</p>
+      </div>
+    </div>
+    <div class="funcion">
+      <span class="icono-funcion ic-3">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12a7.5 7.5 0 0113-5.1M19.5 12a7.5 7.5 0 01-13 5.1"/><path d="M17 3.5v3.6h-3.6M7 20.5v-3.6h3.6"/></svg>
+      </span>
+      <div>
+        <h3>Reconteo dirigido</h3>
+        <p>Envía discrepancias puntuales a una nueva ronda ciega sin reabrir el inventario completo.</p>
+      </div>
+    </div>
+    <div class="funcion">
+      <span class="icono-funcion ic-4">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V10M10 19V5M16 19v-7M4 19h16"/></svg>
+      </span>
+      <div>
+        <h3>Indicadores IRA / ILA</h3>
+        <p>Exactitud de registro, de unidades y de ubicación calculados automáticamente al cerrar.</p>
+      </div>
+    </div>
+    <div class="funcion">
+      <span class="icono-funcion ic-5">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5.5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"/><path d="M9.5 12l1.8 1.8L14.8 10"/></svg>
+      </span>
+      <div>
+        <h3>Auditoría completa</h3>
+        <p>Bitácora append-only de cada acción — quién, qué, cuándo y desde dónde, sin excepciones.</p>
+      </div>
+    </div>
+    <div class="funcion">
+      <span class="icono-funcion ic-6">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M15 19.5v-1.75a3.25 3.25 0 00-3.25-3.25h-4.5A3.25 3.25 0 004 17.75v1.75"/><path d="M9.5 11a3 3 0 100-6 3 3 0 000 6z"/><path d="M17 19.5v-1.75a3.25 3.25 0 00-2.25-3.09M14.5 5.15a3 3 0 010 5.7"/></svg>
+      </span>
+      <div>
+        <h3>Perfiles y permisos</h3>
+        <p>Control fino por rol: operador, supervisor o administrador, cada uno con su propio menú.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="flujo contenido">
+  <div class="titulo-seccion">
+    <h2>De la planificación al cierre en cuatro pasos</h2>
+  </div>
+  <div class="pasos">
+    <div class="paso">
+      <span class="num">1</span>
+      <h4>Planifica</h4>
+      <p>Crea el inventario, carga productos, stock y ubicaciones, y elige la modalidad de conteo.</p>
+    </div>
+    <div class="paso">
+      <span class="num">2</span>
+      <h4>Captura</h4>
+      <p>Los operadores escanean en terreno desde su grupo de trabajo asignado.</p>
+    </div>
+    <div class="paso">
+      <span class="num">3</span>
+      <h4>Cierra y calcula</h4>
+      <p>Al cerrar, el sistema calcula diferencias, IRA/ILA y productividad por operador.</p>
+    </div>
+    <div class="paso">
+      <span class="num">4</span>
+      <h4>Concilia</h4>
+      <p>Envía discrepancias a reconteo dirigido y deja todo registrado en la auditoría.</p>
+    </div>
+  </div>
+</section>
+
+<section class="contenido">
+  <div class="cta-final">
+    <h2>Entra a tu panel de auditoría</h2>
+    <p>Inicia sesión con tu cuenta de empresa o crea una nueva en minutos.</p>
+    <a class="btn btn-primario" href="#" id="link-cta">Ingresar a la aplicación →</a>
+  </div>
+</section>
+
+<footer>
+  © 2026 Auditoría de Inventario — Sistema de control y conciliación de inventarios.
+</footer>
+
+<script>
+  // Único lugar donde vive la URL real de la app — se referencia
+  // desde CSS (var(--url-app)) para mostrarla arriba y se reinyecta
+  // aquí en los 3 enlaces porque los navegadores no resuelven
+  // custom properties dentro de atributos href.
+  var URL_APP = 'http://localhost:4472/login';
+  ['link-header', 'link-hero', 'link-cta'].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (el) el.setAttribute('href', URL_APP);
+  });
+</script>
+
+</body>
+</html>
