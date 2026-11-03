@@ -3,43 +3,89 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Auditoría de Inventario</title>
+<title>Auditoría de Inventario — Captura, conciliación e IRA/ILA</title>
+<meta name="description" content="Captura en terreno con lector o cámara, diferencias al instante, reconteo dirigido sin reabrir el inventario e indicadores IRA/ILA al cerrar." />
+<meta name="theme-color" content="#0f172a" />
+<meta property="og:type" content="website" />
+<meta property="og:title" content="Auditoría de Inventario" />
+<meta property="og:description" content="Cuenta, concilia y audita tu inventario sin perder trazabilidad." />
+<meta property="og:image" content="https://images.unsplash.com/photo-1553413077-190dd305871c?auto=format&fit=crop&w=1200&h=630&q=75" />
+<meta name="twitter:card" content="summary_large_image" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23f59e0b'/%3E%3Ctext x='32' y='44' font-family='Arial' font-weight='800' font-size='34' text-anchor='middle' fill='%230f172a'%3EA%3C/text%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="preconnect" href="https://images.unsplash.com" />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Geist+Mono:wght@500;600&display=swap" rel="stylesheet" />
 <style>
   :root {
     --tinta: #0f172a;
     --tinta-suave: #1e293b;
+    --tinta-borde: rgba(148, 163, 184, 0.18);
     --ambar: #f59e0b;
+    --ambar-claro: #fbbf24;
     --ambar-oscuro: #b45309;
     --texto: #0f172a;
     --texto-suave: #475569;
+    --texto-tenue: #94a3b8;
+    --fondo: #f8fafc;
+    --linea: #e2e8f0;
+    --sombra: 0 24px 50px -12px rgba(15, 23, 42, 0.22);
+    --mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    --ancho: 1180px;
   }
 
   * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
   html, body { margin: 0; padding: 0; }
   body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+    font-family: "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
     color: var(--texto);
-    background: #f8fafc;
+    background: var(--fondo);
     overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
   }
 
-  a { text-decoration: none; }
+  a { text-decoration: none; color: inherit; }
+  img { max-width: 100%; height: auto; display: block; }
+  h1, h2, h3, h4 { text-wrap: balance; }
+  p { text-wrap: pretty; }
 
   ::selection { background: #fde68a; color: var(--texto); }
-  :focus-visible { outline: 2px solid var(--ambar-oscuro); outline-offset: 2px; }
+  :focus-visible { outline: 2px solid var(--ambar); outline-offset: 3px; border-radius: 4px; }
+
+  .saltar {
+    position: absolute;
+    left: 16px;
+    top: -60px;
+    z-index: 50;
+    background: var(--ambar);
+    color: var(--tinta);
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-weight: 600;
+    transition: top 0.2s ease;
+  }
+  .saltar:focus { top: 12px; }
+
+  .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
 
   /* ---------- Header ---------- */
   header {
     position: sticky;
     top: 0;
     z-index: 20;
+    background: rgba(248, 250, 252, 0.86);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--linea);
+  }
+  .header-interno {
+    max-width: var(--ancho);
+    margin: 0 auto;
+    padding: 14px 24px;
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding: 16px 6vw;
-    background: rgba(248, 250, 252, 0.85);
-    backdrop-filter: blur(8px);
-    border-bottom: 1px solid #e2e8f0;
+    gap: 28px;
   }
   .marca {
     display: flex;
@@ -47,6 +93,8 @@
     gap: 10px;
     font-weight: 700;
     font-size: 16px;
+    letter-spacing: -0.01em;
+    margin-right: auto;
   }
   .marca .icono {
     width: 34px;
@@ -61,244 +109,641 @@
     font-weight: 800;
     box-shadow: 0 4px 14px rgba(245, 158, 11, 0.35);
   }
+  .nav-links { display: flex; gap: 26px; font-size: 14px; font-weight: 500; color: var(--texto-suave); }
+  .nav-links a { transition: color 0.2s ease; }
+  .nav-links a:hover { color: var(--texto); }
+
   .btn {
     display: inline-flex;
     align-items: center;
     gap: 8px;
     padding: 10px 20px;
-    border-radius: 8px;
+    border-radius: 10px;
     font-weight: 600;
     font-size: 14px;
-    transition: all 0.15s ease;
+    transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
     border: none;
     cursor: pointer;
   }
+  .btn:active { transform: translateY(1px) scale(0.98); }
   .btn-primario {
     background: var(--ambar);
     color: var(--tinta);
-    box-shadow: 0 6px 18px rgba(245, 158, 11, 0.35);
+    box-shadow: 0 6px 18px rgba(245, 158, 11, 0.32);
   }
   .btn-primario:hover {
-    background: #fbbf24;
-    box-shadow: 0 8px 24px rgba(245, 158, 11, 0.4);
+    background: var(--ambar-claro);
+    box-shadow: 0 10px 26px rgba(245, 158, 11, 0.42);
     transform: translateY(-1px);
   }
+  .btn-primario .flecha { transition: transform 0.2s ease; }
+  .btn-primario:hover .flecha { transform: translateX(3px); }
   .btn-ghost {
     color: var(--tinta);
-    background: transparent;
-    border: 1px solid #e2e8f0;
+    background: white;
+    border: 1px solid var(--linea);
   }
-  .btn-ghost:hover { background: #f8fafc; }
+  .btn-ghost:hover { border-color: #cbd5e1; background: #f1f5f9; }
 
   /* ---------- Hero ---------- */
   .hero {
     position: relative;
     overflow: hidden;
-    padding: 90px 6vw 110px;
-    background: var(--tinta);
+    padding: 64px 24px 124px;
+    background:
+      radial-gradient(900px 520px at 85% -10%, rgba(245, 158, 11, 0.18), transparent 60%),
+      radial-gradient(700px 500px at -10% 110%, rgba(30, 41, 59, 0.9), transparent 70%),
+      var(--tinta);
     color: white;
-    text-align: center;
   }
-  .hero::before {
+  /* Grano sutil para que el fondo oscuro no se vea plano. */
+  .hero::after {
     content: "";
     position: absolute;
-    border-radius: 50%;
-    filter: blur(90px);
+    inset: 0;
     pointer-events: none;
-    width: 480px; height: 480px;
-    top: -220px; right: -120px;
-    background: rgba(245, 158, 11, 0.16);
+    opacity: 0.07;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   }
-  .hero-contenido { position: relative; max-width: 780px; margin: 0 auto; }
-  .badge-hero {
+  .hero-grid {
+    position: relative;
+    z-index: 1;
+    max-width: var(--ancho);
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1.08fr 0.92fr;
+    gap: 64px;
+    align-items: center;
+  }
+  .flag {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    padding: 6px 14px;
-    border-radius: 999px;
-    background: rgba(255,255,255,0.12);
-    border: 1px solid rgba(255,255,255,0.25);
+    gap: 9px;
+    padding: 7px 12px;
+    border-radius: 6px;
+    background: rgba(245, 158, 11, 0.1);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    color: var(--ambar-claro);
     font-size: 13px;
     font-weight: 600;
-    margin-bottom: 22px;
+    margin-bottom: 26px;
   }
-  .badge-hero .punto {
+  .punto {
     width: 7px; height: 7px;
     border-radius: 50%;
     background: #4ade80;
-    box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.25);
+    box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.5);
+    animation: latido 2.4s ease-out infinite;
+  }
+  @keyframes latido {
+    0% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.5); }
+    70%, 100% { box-shadow: 0 0 0 8px rgba(74, 222, 128, 0); }
   }
   .hero h1 {
-    font-size: clamp(32px, 5vw, 52px);
-    line-height: 1.1;
+    font-size: clamp(36px, 4.8vw, 58px);
+    line-height: 1.03;
     font-weight: 800;
-    margin: 0 0 18px;
-    letter-spacing: -0.02em;
+    margin: 0 0 22px;
+    letter-spacing: -0.035em;
   }
-  .hero p {
-    font-size: clamp(15px, 2vw, 18px);
-    color: rgba(255,255,255,0.85);
-    max-width: 600px;
-    margin: 0 auto 34px;
-    line-height: 1.6;
+  .hero h1 em { font-style: normal; color: var(--ambar); }
+  .hero-texto > p {
+    font-size: clamp(16px, 1.6vw, 18.5px);
+    color: rgba(226, 232, 240, 0.86);
+    max-width: 540px;
+    margin: 0 0 36px;
+    line-height: 1.62;
   }
-  .hero-acciones {
-    display: flex;
-    gap: 14px;
-    justify-content: center;
-    flex-wrap: wrap;
-  }
-  .hero-acciones .btn-primario {
-    font-size: 15px;
-    padding: 13px 26px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.35);
-  }
-  .hero-acciones .btn-secundario {
-    padding: 13px 26px;
-    border-radius: 8px;
-    border: 1px solid rgba(255,255,255,0.4);
-    color: white;
+  .hero-acciones { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+  .hero-acciones .btn-primario { font-size: 15px; padding: 14px 26px; }
+  .enlace-terciario {
+    padding: 14px 10px;
+    color: rgba(255, 255, 255, 0.86);
     font-weight: 600;
     font-size: 15px;
+    border-bottom: 1px solid transparent;
+    transition: color 0.2s ease;
   }
-  .hero-acciones .btn-secundario:hover { background: rgba(255,255,255,0.1); }
+  .enlace-terciario:hover { color: white; text-decoration: underline; text-underline-offset: 5px; text-decoration-color: var(--ambar); }
+  .hero-notas {
+    list-style: none;
+    margin: 44px 0 0;
+    padding: 22px 0 0;
+    border-top: 1px solid var(--tinta-borde);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 28px;
+    font-size: 13.5px;
+    color: rgba(203, 213, 225, 0.8);
+  }
+  .hero-notas li { display: flex; align-items: center; gap: 8px; }
+  .hero-notas svg { width: 16px; height: 16px; color: var(--ambar); flex-shrink: 0; }
+
+  .hero-foto { position: relative; margin: 0; }
+  .hero-foto img {
+    width: 100%;
+    aspect-ratio: 5 / 6;
+    object-fit: cover;
+    border-radius: 22px;
+    box-shadow: 0 40px 80px -20px rgba(2, 6, 23, 0.7);
+    outline: 1px solid rgba(255, 255, 255, 0.08);
+    outline-offset: -1px;
+  }
+  /* Tarjetas flotantes: muestran el producto real (lo que se ve en la
+     app al escanear) sobre la foto, en vez de un mockup genérico. */
+  .tarjeta-scan {
+    position: absolute;
+    left: -36px;
+    bottom: 44px;
+    width: 268px;
+    background: white;
+    color: var(--tinta);
+    border-radius: 16px;
+    padding: 16px 18px;
+    box-shadow: 0 24px 48px -12px rgba(2, 6, 23, 0.55);
+  }
+  .tarjeta-scan .encabezado {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 11.5px;
+    color: var(--texto-suave);
+    margin-bottom: 10px;
+  }
+  .tarjeta-scan .pos {
+    font-family: var(--mono);
+    font-weight: 600;
+    background: #fef3c7;
+    color: var(--ambar-oscuro);
+    padding: 3px 7px;
+    border-radius: 5px;
+  }
+  .tarjeta-scan strong { display: block; font-size: 15px; letter-spacing: -0.01em; }
+  .tarjeta-scan .detalle {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 6px;
+    font-size: 12.5px;
+    color: var(--texto-suave);
+  }
+  .tarjeta-scan .cantidad { font-weight: 600; color: var(--texto); }
+  .tarjeta-scan .estado {
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--linea);
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #15803d;
+  }
+  .tarjeta-scan .estado svg { width: 15px; height: 15px; }
+  .linea-scan {
+    position: absolute;
+    left: 18px;
+    right: 18px;
+    top: 0;
+    height: 2px;
+    border-radius: 2px;
+    background: linear-gradient(90deg, transparent, var(--ambar), transparent);
+    animation: barrido 2.8s ease-in-out infinite;
+  }
+  @keyframes barrido {
+    0%, 100% { transform: scaleX(0.2); opacity: 0; }
+    50% { transform: scaleX(1); opacity: 1; }
+  }
+  .chip-ira {
+    position: absolute;
+    top: 28px;
+    right: -22px;
+    background: rgba(15, 23, 42, 0.92);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 18px 40px -10px rgba(2, 6, 23, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    border-radius: 14px;
+    padding: 12px 16px;
+  }
+  .chip-ira .etq { font-size: 11.5px; color: var(--texto-tenue); }
+  .chip-ira .valor { font-family: var(--mono); font-size: 22px; font-weight: 600; color: white; margin-top: 2px; }
+  .chip-ira .valor small { font-size: 13px; color: #4ade80; margin-left: 6px; }
 
   /* ---------- Barra de hechos ---------- */
   /* A propósito NO son tarjetas de métrica (número grande + etiqueta +
      acento) — es una franja tipográfica continua, sin cajas ni sombras
      individuales, para no caer en la plantilla genérica de "stat cards". */
   .barra-hechos {
-    max-width: 900px;
-    margin: -34px auto 0;
+    max-width: calc(var(--ancho) - 48px);
+    margin: -52px auto 0;
     position: relative;
     z-index: 5;
     background: white;
-    border-radius: 14px;
-    box-shadow: 0 20px 45px rgba(15, 23, 42, 0.12);
+    border-radius: 16px;
+    box-shadow: var(--sombra);
     display: flex;
     flex-wrap: wrap;
   }
   .hecho {
-    flex: 1 1 200px;
-    padding: 22px 24px;
+    flex: 1 1 220px;
+    padding: 24px 28px;
     border-right: 1px solid #f1f5f9;
   }
   .hecho:last-child { border-right: none; }
-  .hecho .valor { font-size: 17px; font-weight: 800; color: var(--texto); }
-  .hecho .etiqueta { font-size: 13px; color: var(--texto-suave); margin-top: 2px; }
+  .hecho .valor { font-size: 16.5px; font-weight: 700; color: var(--texto); letter-spacing: -0.01em; }
+  .hecho .etiqueta { font-size: 13px; color: var(--texto-suave); margin-top: 3px; }
 
   /* ---------- Secciones ---------- */
-  section.contenido { padding: 90px 6vw; max-width: 1120px; margin: 0 auto; }
-  .titulo-seccion { max-width: 620px; margin: 0 auto 56px; text-align: center; }
-  .titulo-seccion h2 { font-size: clamp(26px, 3.4vw, 36px); margin: 0 0 12px; font-weight: 800; letter-spacing: -0.01em; }
-  .titulo-seccion p { color: var(--texto-suave); font-size: 15.5px; line-height: 1.6; }
+  section.contenido { padding: 110px 24px 120px; max-width: var(--ancho); margin: 0 auto; }
+  .eyebrow {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--ambar-oscuro);
+    margin-bottom: 14px;
+  }
+  .titulo-seccion { max-width: 640px; margin: 0 0 72px; }
+  .titulo-seccion h2 {
+    font-size: clamp(28px, 3.6vw, 42px);
+    line-height: 1.1;
+    margin: 0 0 16px;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+  }
+  .titulo-seccion p { color: var(--texto-suave); font-size: 16.5px; line-height: 1.65; margin: 0; max-width: 560px; }
 
-  /* Lista de funciones: filas icono+texto sin marco de tarjeta, para no
-     repetir el default de "grilla de cajas idénticas". */
-  .lista-funciones {
+  /* Funciones principales en zig-zag con foto: cada una cuenta un
+     momento del trabajo real (terreno → reconteo → cierre). */
+  .historia {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    column-gap: 48px;
-    row-gap: 40px;
+    gap: 72px;
+    align-items: center;
+    margin-bottom: 110px;
   }
-  .funcion { display: flex; gap: 18px; align-items: flex-start; }
-  .funcion .icono-funcion {
-    flex-shrink: 0;
-    width: 42px; height: 42px;
-    border-radius: 11px;
+  .historia:last-of-type { margin-bottom: 0; }
+  .historia.invertida figure { order: 2; }
+  .historia figure { position: relative; margin: 0; }
+  .historia figure img {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    border-radius: 20px;
+    box-shadow: var(--sombra);
+  }
+  .historia h3 {
+    font-size: clamp(24px, 2.6vw, 32px);
+    line-height: 1.15;
+    letter-spacing: -0.025em;
+    margin: 0 0 16px;
+    font-weight: 700;
+  }
+  .historia-texto > p { color: var(--texto-suave); font-size: 16px; line-height: 1.65; margin: 0 0 26px; max-width: 480px; }
+  .checks { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+  .checks li { display: flex; gap: 12px; align-items: flex-start; font-size: 15px; line-height: 1.5; color: var(--texto); }
+  .checks svg { width: 20px; height: 20px; flex-shrink: 0; margin-top: 1px; color: var(--ambar-oscuro); }
+
+  .sello {
+    position: absolute;
+    background: white;
+    border-radius: 14px;
+    box-shadow: 0 20px 40px -12px rgba(15, 23, 42, 0.35);
+    padding: 14px 18px;
+  }
+  .sello-reconteo { right: -24px; bottom: 32px; display: flex; gap: 12px; align-items: center; }
+  .sello-reconteo .ronda {
+    width: 38px; height: 38px;
+    border-radius: 10px;
+    background: var(--tinta);
+    color: var(--ambar);
+    font-family: var(--mono);
+    font-weight: 600;
     display: flex; align-items: center; justify-content: center;
-    color: white;
   }
-  .funcion .icono-funcion svg { width: 22px; height: 22px; }
-  .funcion h3 { margin: 2px 0 6px; font-size: 16px; font-weight: 700; }
-  .funcion p { margin: 0; font-size: 14px; color: var(--texto-suave); line-height: 1.6; }
+  .sello-reconteo b { display: block; font-size: 14px; }
+  .sello-reconteo span { font-size: 12.5px; color: var(--texto-suave); }
+  .sello-cierre { left: -24px; bottom: -28px; display: grid; grid-template-columns: repeat(3, auto); gap: 4px 26px; }
+  .sello-cierre .etq { font-size: 11.5px; color: var(--texto-suave); }
+  .sello-cierre .valor { font-family: var(--mono); font-size: 20px; font-weight: 600; color: var(--texto); }
+  .sello-cierre .valor.alerta { color: var(--ambar-oscuro); }
 
-  .ic-1, .ic-3, .ic-5 { background: var(--ambar-oscuro); }
-  .ic-2, .ic-4, .ic-6 { background: var(--tinta-suave); }
-
-  @media (max-width: 720px) {
-    .lista-funciones { grid-template-columns: 1fr; }
+  /* ---------- Además ---------- */
+  .ademas {
+    margin-top: 130px;
+    padding-top: 64px;
+    border-top: 1px solid var(--linea);
+    display: grid;
+    grid-template-columns: 0.8fr 1.2fr;
+    gap: 64px;
   }
+  .ademas h3 { font-size: clamp(22px, 2.3vw, 28px); letter-spacing: -0.025em; line-height: 1.2; margin: 0 0 12px; }
+  .ademas > div > p { color: var(--texto-suave); font-size: 15px; line-height: 1.6; margin: 0; }
+  .lista-extra { display: grid; gap: 30px; }
+  .extra { display: flex; gap: 18px; align-items: flex-start; }
+  .extra .icono-extra {
+    flex-shrink: 0;
+    width: 44px; height: 44px;
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    background: #fef3c7;
+    color: var(--ambar-oscuro);
+  }
+  .extra .icono-extra svg { width: 22px; height: 22px; }
+  .extra h4 { margin: 2px 0 5px; font-size: 16px; font-weight: 600; }
+  .extra p { margin: 0; font-size: 14.5px; color: var(--texto-suave); line-height: 1.6; }
 
   /* ---------- Flujo ---------- */
-  .flujo {
-    background: #f8fafc;
-    border-top: 1px solid #f1f5f9;
-    border-bottom: 1px solid #f1f5f9;
-  }
+  .flujo-envoltura { background: white; border-top: 1px solid var(--linea); border-bottom: 1px solid var(--linea); }
   .pasos {
+    list-style: none;
+    margin: 0;
+    padding: 0;
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 24px;
-    counter-reset: paso;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 32px;
+    position: relative;
   }
-  .paso { position: relative; padding-left: 4px; }
+  /* Línea que une los pasos — solo en escritorio. */
+  .pasos::before {
+    content: "";
+    position: absolute;
+    top: 21px;
+    left: 22px;
+    right: 22px;
+    height: 1px;
+    background: repeating-linear-gradient(90deg, #cbd5e1 0 6px, transparent 6px 12px);
+  }
+  .paso { position: relative; }
   .paso .num {
+    position: relative;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 34px; height: 34px;
-    border-radius: 50%;
+    width: 44px; height: 44px;
+    border-radius: 12px;
     background: var(--tinta);
     color: var(--ambar);
-    font-weight: 800;
+    font-family: var(--mono);
+    font-weight: 600;
     font-size: 14px;
-    margin-bottom: 14px;
+    margin-bottom: 20px;
+    box-shadow: 0 0 0 6px white;
   }
-  .paso h4 { margin: 0 0 6px; font-size: 15px; font-weight: 700; }
-  .paso p { margin: 0; font-size: 13.5px; color: var(--texto-suave); line-height: 1.55; }
+  .paso h4 { margin: 0 0 8px; font-size: 17px; font-weight: 700; letter-spacing: -0.01em; }
+  .paso p { margin: 0; font-size: 14.5px; color: var(--texto-suave); line-height: 1.6; }
 
   /* ---------- CTA final ---------- */
   .cta-final {
-    margin: 0 6vw 90px;
-    border-radius: 24px;
-    padding: 60px 6vw;
-    text-align: center;
-    background: var(--tinta);
-    color: white;
     position: relative;
     overflow: hidden;
+    max-width: var(--ancho);
+    margin: 110px auto 0;
+    border-radius: 28px;
+    color: white;
+    background: var(--tinta);
+    isolation: isolate;
   }
-  .cta-final h2 { font-size: clamp(22px, 3vw, 30px); margin: 0 0 12px; font-weight: 800; }
-  .cta-final p { color: rgba(255,255,255,0.85); margin: 0 0 28px; font-size: 15px; }
+  .cta-final img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: -2;
+  }
+  .cta-final::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background:
+      linear-gradient(100deg, rgba(15, 23, 42, 0.96) 0%, rgba(15, 23, 42, 0.86) 45%, rgba(15, 23, 42, 0.35) 100%),
+      radial-gradient(500px 300px at 0% 100%, rgba(245, 158, 11, 0.22), transparent 70%);
+  }
+  .cta-interno { padding: 80px 64px; max-width: 620px; }
+  .cta-final h2 { font-size: clamp(28px, 3.6vw, 42px); line-height: 1.1; letter-spacing: -0.03em; margin: 0 0 16px; font-weight: 800; }
+  .cta-final p { color: rgba(226, 232, 240, 0.88); margin: 0 0 32px; font-size: 16.5px; line-height: 1.6; }
+  .cta-final .btn-primario { font-size: 15px; padding: 14px 26px; }
 
-  footer {
-    padding: 30px 6vw;
-    text-align: center;
-    font-size: 13px;
-    color: #94a3b8;
-    border-top: 1px solid #e2e8f0;
+  /* ---------- Contacto ---------- */
+  .contacto {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 72px;
+    align-items: center;
+  }
+  .contacto .titulo-seccion { margin: 0; }
+  .contacto-firma { margin-top: 32px; display: flex; align-items: center; gap: 14px; }
+  .contacto-firma .iniciales {
+    width: 46px; height: 46px;
+    border-radius: 14px;
+    background: var(--tinta);
+    color: var(--ambar);
+    font-weight: 700;
+    font-size: 15px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .contacto-firma b { display: block; font-size: 15px; font-weight: 600; }
+  .contacto-firma span { font-size: 13.5px; color: var(--texto-suave); }
+  .canales { display: grid; gap: 14px; }
+  .canal {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    padding: 20px 22px;
+    background: white;
+    border: 1px solid var(--linea);
+    border-radius: 16px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+  }
+  .canal:hover { border-color: #cbd5e1; box-shadow: 0 16px 32px -16px rgba(15, 23, 42, 0.28); transform: translateY(-2px); }
+  .canal:active { transform: scale(0.99); }
+  .canal .icono-canal {
+    width: 48px; height: 48px;
+    border-radius: 13px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .canal .icono-canal svg { width: 24px; height: 24px; }
+  .canal-ws .icono-canal { background: #dcfce7; color: #15803d; }
+  .canal-mail .icono-canal { background: #fef3c7; color: var(--ambar-oscuro); }
+  .canal .etq { font-size: 13px; color: var(--texto-suave); }
+  .canal .dato { font-size: 17px; font-weight: 600; letter-spacing: -0.01em; overflow-wrap: anywhere; }
+  .canal .ir { margin-left: auto; color: var(--texto-tenue); transition: transform 0.2s ease, color 0.2s ease; }
+  .canal:hover .ir { transform: translateX(3px); color: var(--texto); }
+
+  /* Botón flotante de WhatsApp. Texto oscuro sobre el verde de marca:
+     el blanco sobre #25d366 no alcanza contraste legible. */
+  .ws-flotante {
+    position: fixed;
+    right: 20px;
+    bottom: 20px;
+    z-index: 30;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 18px 12px 14px;
+    border-radius: 999px;
+    background: #25d366;
+    color: #052e16;
+    font-weight: 600;
+    font-size: 14px;
+    box-shadow: 0 14px 30px -10px rgba(21, 128, 61, 0.6);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .ws-flotante svg { width: 24px; height: 24px; }
+  .ws-flotante:hover { transform: translateY(-2px); box-shadow: 0 18px 34px -10px rgba(21, 128, 61, 0.65); }
+  .ws-flotante:active { transform: scale(0.97); }
+
+  /* ---------- Footer ---------- */
+  footer { border-top: 1px solid var(--linea); background: white; }
+  .footer-interno {
+    max-width: var(--ancho);
+    margin: 0 auto;
+    padding: 36px 24px 44px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px 40px;
+    align-items: flex-start;
+    justify-content: space-between;
+    font-size: 13.5px;
+    color: var(--texto-suave);
+  }
+  .footer-interno nav { display: flex; gap: 24px; font-weight: 500; }
+  .footer-interno nav a:hover { color: var(--texto); }
+  .credito { width: 100%; font-size: 12px; color: var(--texto-tenue); }
+  .credito a { text-decoration: underline; text-underline-offset: 3px; }
+  .credito a:hover { color: var(--texto-suave); }
+
+  /* ---------- Entrada al hacer scroll ---------- */
+  .js .revelar { opacity: 0; transform: translateY(22px); transition: opacity 0.7s ease, transform 0.7s cubic-bezier(0.2, 0.7, 0.2, 1); }
+  .js .revelar.visible { opacity: 1; transform: none; }
+  .js .revelar.d1 { transition-delay: 0.08s; }
+  .js .revelar.d2 { transition-delay: 0.16s; }
+  .js .revelar.d3 { transition-delay: 0.24s; }
+
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    .punto, .linea-scan { animation: none; }
+    .js .revelar { opacity: 1; transform: none; transition: none; }
   }
 
-  @media (max-width: 640px) {
-    header { padding: 14px 5vw; }
-    .hero { padding: 70px 5vw 90px; }
-    section.contenido { padding: 60px 5vw; }
+  /* ---------- Responsive ---------- */
+  @media (max-width: 960px) {
+    .hero-grid { grid-template-columns: 1fr; gap: 56px; }
+    .hero-foto { max-width: 520px; margin: 0 auto; width: 100%; }
+    .hero-foto img { aspect-ratio: 5 / 4; }
+    .tarjeta-scan { left: 16px; bottom: 16px; }
+    .chip-ira { right: 16px; top: 16px; }
+    .historia, .historia.invertida { grid-template-columns: 1fr; gap: 40px; margin-bottom: 96px; }
+    .historia.invertida figure { order: 0; }
+    .sello-reconteo { right: 16px; bottom: 16px; }
+    .sello-cierre { left: 16px; bottom: 16px; }
+    .ademas { grid-template-columns: 1fr; gap: 36px; }
+    .contacto { grid-template-columns: 1fr; gap: 40px; }
+    .pasos { grid-template-columns: 1fr 1fr; gap: 40px 32px; }
+    .pasos::before { display: none; }
+  }
+  @media (max-width: 720px) {
+    .nav-links { display: none; }
+    .header-interno { padding: 12px 16px; gap: 12px; }
+    .marca { font-size: 15px; white-space: nowrap; }
+    .hero { padding: 56px 16px 112px; }
+    .hero-notas { margin-top: 36px; }
+    .barra-hechos { margin: -48px 16px 0; }
+    .hecho { flex-basis: 50%; border-right: none; border-bottom: 1px solid #f1f5f9; padding: 18px 20px; }
+    section.contenido { padding: 80px 16px 88px; }
+    .titulo-seccion { margin-bottom: 52px; }
+    .cta-final { margin: 80px 16px 0; border-radius: 22px; }
+    .ws-flotante { right: 16px; bottom: 16px; padding: 14px; }
+    .ws-flotante span { display: none; }
+    .cta-interno { padding: 56px 24px; }
+    .cta-final::before { background: rgba(15, 23, 42, 0.86); }
+    .footer-interno { padding: 32px 16px 96px; }
+  }
+  @media (max-width: 480px) {
+    .hecho { flex-basis: 100%; }
+    .pasos { grid-template-columns: 1fr; }
+    .hero { padding-bottom: 140px; }
+    .hero-foto img { aspect-ratio: 1 / 1; }
+    .tarjeta-scan { width: auto; right: 16px; bottom: -32px; padding: 14px 16px; }
+    .chip-ira { padding: 10px 12px; }
+    .chip-ira .valor { font-size: 18px; }
+    .sello-cierre { gap: 4px 16px; right: 16px; padding: 12px 14px; }
+    .sello-cierre .valor { font-size: 17px; }
+    .canal { gap: 14px; padding: 16px 18px; }
+    .canal .icono-canal { width: 42px; height: 42px; }
+    .canal .dato { font-size: 15px; }
   }
 </style>
+<script>document.documentElement.classList.add('js');</script>
 </head>
 <body>
 
+<a class="saltar" href="#principal">Saltar al contenido</a>
+
 <header>
-  <div class="marca">
-    <span class="icono">A</span>
-    Auditoría de Inventario
+  <div class="header-interno">
+    <a class="marca" href="#">
+      <span class="icono" aria-hidden="true">A</span>
+      Auditoría de Inventario
+    </a>
+    <nav class="nav-links" aria-label="Secciones">
+      <a href="#funciones">Funciones</a>
+      <a href="#como-funciona">Cómo funciona</a>
+      <a href="#contacto">Contacto</a>
+    </nav>
+    <a class="btn btn-ghost" href="https://inventario-panel-mvc.onrender.com/login" id="link-header">Ingresar</a>
   </div>
-  <a class="btn btn-ghost" href="#" id="link-header">Ingresar</a>
 </header>
 
+<main id="principal">
+
 <section class="hero">
-  <div class="hero-contenido">
-    <span class="badge-hero"><span class="punto"></span> En vivo mientras se cuenta</span>
-    <h1>Cuenta, concilia y audita tu inventario sin perder trazabilidad</h1>
-    <p>
-      Captura en terreno con lector o cámara, calcula diferencias al instante, reconteo
-      dirigido sin reabrir el inventario, e IRA/ILA listos para tu próxima auditoría.
-    </p>
-    <div class="hero-acciones">
-      <a class="btn btn-primario" href="#" id="link-hero">Ir a la aplicación →</a>
-      <a class="btn-secundario" href="#funciones">Ver funciones</a>
+  <div class="hero-grid">
+    <div class="hero-texto">
+      <span class="flag"><span class="punto"></span> En vivo mientras se cuenta</span>
+      <h1>Cuenta, concilia y audita tu inventario <em>sin perder trazabilidad</em></h1>
+      <p>
+        Captura en terreno con lector o cámara, calcula diferencias al instante, reconteo
+        dirigido sin reabrir el inventario, e IRA/ILA listos para tu próxima auditoría.
+      </p>
+      <div class="hero-acciones">
+        <a class="btn btn-primario" href="https://inventario-panel-mvc.onrender.com/login" id="link-hero">Ir a la aplicación <span class="flecha" aria-hidden="true">→</span></a>
+        <a class="enlace-terciario" href="#funciones">Ver funciones</a>
+      </div>
+      <ul class="hero-notas">
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg> Códigos EAN y GS1-128</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg> Lector físico o cámara del celular</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg> Datos aislados por empresa</li>
+      </ul>
     </div>
+
+    <figure class="hero-foto">
+      <img
+        src="https://images.unsplash.com/photo-1764795850513-fa8a469a4600?auto=format&fit=crop&w=640&h=800&q=75"
+        srcset="https://images.unsplash.com/photo-1764795850513-fa8a469a4600?auto=format&fit=crop&w=640&h=800&q=75 640w,
+                https://images.unsplash.com/photo-1764795850513-fa8a469a4600?auto=format&fit=crop&w=1100&h=1375&q=70 1100w"
+        sizes="(max-width: 960px) 92vw, 520px"
+        width="640" height="800"
+        alt="Operaria con una tablet revisando productos en las estanterías de una bodega"
+        fetchpriority="high" />
+      <div class="chip-ira" aria-hidden="true">
+        <div class="etq">IRA al cierre</div>
+        <div class="valor">97,8 %<small>▲ 2,1</small></div>
+      </div>
+      <div class="tarjeta-scan" aria-hidden="true">
+        <span class="linea-scan"></span>
+        <div class="encabezado"><span>Captura registrada</span><span class="pos">POS-A01-2</span></div>
+        <strong>Arroz grado 1 · 1 kg</strong>
+        <div class="detalle"><span class="mono">7802900001017</span><span class="cantidad mono">+24 u</span></div>
+        <div class="estado">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+          Coincide con el stock esperado
+        </div>
+      </div>
+    </figure>
   </div>
 </section>
 
@@ -310,118 +755,254 @@
 </div>
 
 <section class="contenido" id="funciones">
-  <div class="titulo-seccion">
+  <div class="titulo-seccion revelar">
+    <span class="eyebrow">Funciones</span>
     <h2>Una sola herramienta, de la carga inicial al resultado final</h2>
     <p>Diseñada para equipos de control de inventarios que necesitan velocidad en terreno y rigor en la oficina.</p>
   </div>
-  <div class="lista-funciones">
-    <div class="funcion">
-      <span class="icono-funcion ic-1">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2M7 12h10"/></svg>
-      </span>
-      <div>
-        <h3>Captura en terreno</h3>
-        <p>Lector físico o cámara, lectura GS1-128, resolución de posición y producto en tiempo real.</p>
-      </div>
+
+  <article class="historia">
+    <figure class="revelar">
+      <img
+        src="https://images.unsplash.com/photo-1758543102367-da8b00ddf4da?auto=format&fit=crop&w=720&h=540&q=72"
+        srcset="https://images.unsplash.com/photo-1758543102367-da8b00ddf4da?auto=format&fit=crop&w=720&h=540&q=72 720w,
+                https://images.unsplash.com/photo-1758543102367-da8b00ddf4da?auto=format&fit=crop&w=1280&h=960&q=68 1280w"
+        sizes="(max-width: 960px) 92vw, 540px"
+        width="720" height="540" loading="lazy"
+        alt="Operador escaneando un código con un lector de muñeca" />
+    </figure>
+    <div class="historia-texto revelar d1">
+      <span class="eyebrow">01 · En terreno</span>
+      <h3>Captura con lector o con la cámara, sin papel de por medio</h3>
+      <p>Cada operador escanea desde su grupo de trabajo y ve al instante qué producto y qué posición quedaron registrados.</p>
+      <ul class="checks">
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8.5 12.2l2.4 2.4 4.6-4.8"/></svg>Lectura EAN y GS1-128 con lector físico o cámara.</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8.5 12.2l2.4 2.4 4.6-4.8"/></svg>Resolución de posición y producto en tiempo real.</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8.5 12.2l2.4 2.4 4.6-4.8"/></svg>Cada grupo trabaja solo en las ubicaciones que tiene asignadas.</li>
+      </ul>
     </div>
-    <div class="funcion">
-      <span class="icono-funcion ic-2">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21V8l9-5 9 5v13M9 21v-6h6v6M3 21h18"/></svg>
-      </span>
-      <div>
-        <h3>Multi-cuenta y multi-inventario</h3>
-        <p>Organiza por cliente, cuenta y proceso — cada inventario con su propio tipo (guiado, ciego o contra stock).</p>
+  </article>
+
+  <article class="historia invertida">
+    <figure class="revelar">
+      <img
+        src="https://images.unsplash.com/photo-1664382950442-0748f82f2752?auto=format&fit=crop&w=720&h=540&q=72"
+        srcset="https://images.unsplash.com/photo-1664382950442-0748f82f2752?auto=format&fit=crop&w=720&h=540&q=72 720w,
+                https://images.unsplash.com/photo-1664382950442-0748f82f2752?auto=format&fit=crop&w=1280&h=960&q=68 1280w"
+        sizes="(max-width: 960px) 92vw, 540px"
+        width="720" height="540" loading="lazy"
+        alt="Dos trabajadoras revisando juntas un registro en una bodega con cajas organizadas" />
+      <div class="sello sello-reconteo" aria-hidden="true">
+        <span class="ronda">R2</span>
+        <div><b>Reconteo dirigido</b><span>14 líneas · ronda ciega</span></div>
       </div>
+    </figure>
+    <div class="historia-texto revelar d1">
+      <span class="eyebrow">02 · Conciliación</span>
+      <h3>Reconteo dirigido, sin reabrir el inventario completo</h3>
+      <p>Las discrepancias se envían a una nueva ronda ciega y solo se vuelve a contar lo que no cuadra.</p>
+      <ul class="checks">
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8.5 12.2l2.4 2.4 4.6-4.8"/></svg>Diferencias calculadas al instante contra el stock cargado.</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8.5 12.2l2.4 2.4 4.6-4.8"/></svg>Ronda ciega: quien recuenta no ve la cantidad esperada.</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8.5 12.2l2.4 2.4 4.6-4.8"/></svg>Cada resolución queda registrada con su responsable.</li>
+      </ul>
     </div>
-    <div class="funcion">
-      <span class="icono-funcion ic-3">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12a7.5 7.5 0 0113-5.1M19.5 12a7.5 7.5 0 01-13 5.1"/><path d="M17 3.5v3.6h-3.6M7 20.5v-3.6h3.6"/></svg>
-      </span>
-      <div>
-        <h3>Reconteo dirigido</h3>
-        <p>Envía discrepancias puntuales a una nueva ronda ciega sin reabrir el inventario completo.</p>
+  </article>
+
+  <article class="historia">
+    <figure class="revelar">
+      <img
+        src="https://images.unsplash.com/photo-1740914994657-f1cdffdc418e?auto=format&fit=crop&w=720&h=540&q=72"
+        srcset="https://images.unsplash.com/photo-1740914994657-f1cdffdc418e?auto=format&fit=crop&w=720&h=540&q=72 720w,
+                https://images.unsplash.com/photo-1740914994657-f1cdffdc418e?auto=format&fit=crop&w=1280&h=960&q=68 1280w"
+        sizes="(max-width: 960px) 92vw, 540px"
+        width="720" height="540" loading="lazy"
+        alt="Grúa horquilla amarilla recorriendo un pasillo de racks con mercadería paletizada" />
+      <div class="sello sello-cierre" aria-hidden="true">
+        <span class="etq">IRA</span><span class="etq">ILA</span><span class="etq">Diferencias</span>
+        <span class="valor">97,8 %</span><span class="valor">99,1 %</span><span class="valor alerta">14</span>
       </div>
+    </figure>
+    <div class="historia-texto revelar d1">
+      <span class="eyebrow">03 · Cierre</span>
+      <h3>Indicadores IRA / ILA listos en cuanto cierras</h3>
+      <p>Al cerrar el inventario, el sistema calcula la exactitud y la productividad sin planillas intermedias.</p>
+      <ul class="checks">
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8.5 12.2l2.4 2.4 4.6-4.8"/></svg>Exactitud de registro, de unidades y de ubicación.</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8.5 12.2l2.4 2.4 4.6-4.8"/></svg>Productividad por operador.</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8.5 12.2l2.4 2.4 4.6-4.8"/></svg>Modalidad guiada, ciega o contra stock según el inventario.</li>
+      </ul>
     </div>
-    <div class="funcion">
-      <span class="icono-funcion ic-4">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V10M10 19V5M16 19v-7M4 19h16"/></svg>
-      </span>
-      <div>
-        <h3>Indicadores IRA / ILA</h3>
-        <p>Exactitud de registro, de unidades y de ubicación calculados automáticamente al cerrar.</p>
+  </article>
+
+  <div class="ademas">
+    <div class="revelar">
+      <span class="eyebrow">Y además</span>
+      <h3>Pensada para operar varias empresas y cuentas a la vez</h3>
+      <p>Lo que necesita una empresa de servicios de inventario o un área de control interno con varios clientes.</p>
+    </div>
+    <div class="lista-extra">
+      <div class="extra revelar d1">
+        <span class="icono-extra">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21V8l9-5 9 5v13M9 21v-6h6v6M3 21h18"/></svg>
+        </span>
+        <div>
+          <h4>Multi-cuenta y multi-inventario</h4>
+          <p>Organiza por cliente, cuenta y proceso; cada inventario con su propio tipo de conteo.</p>
+        </div>
       </div>
-    </div>
-    <div class="funcion">
-      <span class="icono-funcion ic-5">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5.5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"/><path d="M9.5 12l1.8 1.8L14.8 10"/></svg>
-      </span>
-      <div>
-        <h3>Auditoría completa</h3>
-        <p>Bitácora append-only de cada acción — quién, qué, cuándo y desde dónde, sin excepciones.</p>
+      <div class="extra revelar d2">
+        <span class="icono-extra">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5M10 13h6M10 17h6"/></svg>
+        </span>
+        <div>
+          <h4>Bitácora de auditoría</h4>
+          <p>Registro append-only de cada acción: quién, qué, cuándo y desde dónde, sin excepciones.</p>
+        </div>
       </div>
-    </div>
-    <div class="funcion">
-      <span class="icono-funcion ic-6">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M15 19.5v-1.75a3.25 3.25 0 00-3.25-3.25h-4.5A3.25 3.25 0 004 17.75v1.75"/><path d="M9.5 11a3 3 0 100-6 3 3 0 000 6z"/><path d="M17 19.5v-1.75a3.25 3.25 0 00-2.25-3.09M14.5 5.15a3 3 0 010 5.7"/></svg>
-      </span>
-      <div>
-        <h3>Perfiles y permisos</h3>
-        <p>Control fino por rol: operador, supervisor o administrador, cada uno con su propio menú.</p>
+      <div class="extra revelar d3">
+        <span class="icono-extra">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 19.5v-1.75a3.25 3.25 0 00-3.25-3.25h-4.5A3.25 3.25 0 004 17.75v1.75"/><path d="M9.5 11a3 3 0 100-6 3 3 0 000 6z"/><path d="M17 19.5v-1.75a3.25 3.25 0 00-2.25-3.09M14.5 5.15a3 3 0 010 5.7"/></svg>
+        </span>
+        <div>
+          <h4>Perfiles y permisos</h4>
+          <p>Operador, supervisor o administrador, cada uno con su propio menú y acceso.</p>
+        </div>
       </div>
     </div>
   </div>
 </section>
 
-<section class="flujo contenido">
-  <div class="titulo-seccion">
-    <h2>De la planificación al cierre en cuatro pasos</h2>
-  </div>
-  <div class="pasos">
-    <div class="paso">
-      <span class="num">1</span>
-      <h4>Planifica</h4>
-      <p>Crea el inventario, carga productos, stock y ubicaciones, y elige la modalidad de conteo.</p>
+<div class="flujo-envoltura" id="como-funciona">
+  <section class="contenido">
+    <div class="titulo-seccion revelar">
+      <span class="eyebrow">Cómo funciona</span>
+      <h2>De la planificación al cierre en cuatro pasos</h2>
     </div>
-    <div class="paso">
-      <span class="num">2</span>
-      <h4>Captura</h4>
-      <p>Los operadores escanean en terreno desde su grupo de trabajo asignado.</p>
-    </div>
-    <div class="paso">
-      <span class="num">3</span>
-      <h4>Cierra y calcula</h4>
-      <p>Al cerrar, el sistema calcula diferencias, IRA/ILA y productividad por operador.</p>
-    </div>
-    <div class="paso">
-      <span class="num">4</span>
-      <h4>Concilia</h4>
-      <p>Envía discrepancias a reconteo dirigido y deja todo registrado en la auditoría.</p>
-    </div>
-  </div>
-</section>
+    <ol class="pasos">
+      <li class="paso revelar">
+        <span class="num">01</span>
+        <h4>Planifica</h4>
+        <p>Crea el inventario, carga productos, stock y ubicaciones desde Excel, y elige la modalidad de conteo.</p>
+      </li>
+      <li class="paso revelar d1">
+        <span class="num">02</span>
+        <h4>Captura</h4>
+        <p>Los operadores escanean en terreno desde su grupo de trabajo asignado.</p>
+      </li>
+      <li class="paso revelar d2">
+        <span class="num">03</span>
+        <h4>Cierra y calcula</h4>
+        <p>Al cerrar, el sistema calcula diferencias, IRA/ILA y productividad por operador.</p>
+      </li>
+      <li class="paso revelar d3">
+        <span class="num">04</span>
+        <h4>Concilia</h4>
+        <p>Envía discrepancias a reconteo dirigido y deja todo registrado en la auditoría.</p>
+      </li>
+    </ol>
+  </section>
+</div>
 
-<section class="contenido">
-  <div class="cta-final">
+<section class="cta-final revelar">
+  <img
+    src="https://images.unsplash.com/photo-1553413077-190dd305871c?auto=format&fit=crop&w=1400&h=700&q=65"
+    srcset="https://images.unsplash.com/photo-1553413077-190dd305871c?auto=format&fit=crop&w=800&h=700&q=65 800w,
+            https://images.unsplash.com/photo-1553413077-190dd305871c?auto=format&fit=crop&w=1400&h=700&q=65 1400w"
+    sizes="(max-width: 720px) 100vw, 1180px"
+    width="1400" height="700" loading="lazy" alt="" />
+  <div class="cta-interno">
     <h2>Entra a tu panel de auditoría</h2>
     <p>Inicia sesión con tu cuenta de empresa o crea una nueva en minutos.</p>
-    <a class="btn btn-primario" href="#" id="link-cta">Ingresar a la aplicación →</a>
+    <a class="btn btn-primario" href="https://inventario-panel-mvc.onrender.com/login" id="link-cta">Ingresar a la aplicación <span class="flecha" aria-hidden="true">→</span></a>
   </div>
 </section>
 
+<section class="contenido" id="contacto">
+  <div class="contacto">
+    <div class="revelar">
+      <div class="titulo-seccion">
+        <span class="eyebrow">Contacto</span>
+        <h2>¿Planificas un inventario? Conversemos</h2>
+        <p>Agenda una demostración, resuelve dudas de implementación o pide ayuda para crear la cuenta de tu empresa.</p>
+      </div>
+      <div class="contacto-firma">
+        <span class="iniciales" aria-hidden="true">AS</span>
+        <div><b>Alejandro Salas Cannobbio</b><span>Auditoría de Inventario</span></div>
+      </div>
+    </div>
+    <div class="canales revelar d1">
+      <a class="canal canal-ws" href="https://wa.me/56979500383?text=Hola%2C%20quiero%20informaci%C3%B3n%20sobre%20Auditor%C3%ADa%20de%20Inventario" target="_blank" rel="noopener">
+        <span class="icono-canal">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+        </span>
+        <div><div class="etq">WhatsApp</div><div class="dato mono">+56 9 7950 0383</div></div>
+        <span class="ir" aria-hidden="true">→</span>
+      </a>
+      <a class="canal canal-mail" href="mailto:alesalas1977@gmail.com?subject=Auditor%C3%ADa%20de%20Inventario">
+        <span class="icono-canal">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3.5 7l8.5 6 8.5-6"/></svg>
+        </span>
+        <div><div class="etq">Correo</div><div class="dato">alesalas1977@gmail.com</div></div>
+        <span class="ir" aria-hidden="true">→</span>
+      </a>
+    </div>
+  </div>
+</section>
+
+</main>
+
 <footer>
-  © 2026 Auditoría de Inventario — Sistema de control y conciliación de inventarios.
+  <div class="footer-interno">
+    <span>© 2026 Auditoría de Inventario — Sistema de control y conciliación de inventarios.</span>
+    <nav aria-label="Pie de página">
+      <a href="#funciones">Funciones</a>
+      <a href="#como-funciona">Cómo funciona</a>
+      <a href="#contacto">Contacto</a>
+      <a href="https://inventario-panel-mvc.onrender.com/login" id="link-footer">Ingresar</a>
+    </nav>
+    <p class="credito">
+      Fotografías de <a href="https://unsplash.com/es/fotos/mujer-con-tablet-revisa-el-inventario-de-las-estanterias-bXgiCqLqZaA" rel="noopener" target="_blank">Cova Software</a>,
+      <a href="https://unsplash.com/es/fotos/hombre-con-un-dispositivo-en-el-brazo-con-un-cable--8Lsg7OqCBE" rel="noopener" target="_blank">Bluestonex</a>,
+      <a href="https://unsplash.com/es/fotos/mujeres-mirando-un-archivo-j3ay5s6Irlk" rel="noopener" target="_blank">Centre for Ageing Better</a>,
+      <a href="https://unsplash.com/es/fotos/una-carretilla-elevadora-amarilla-en-un-gran-almacen-82ZiY5pzl1c" rel="noopener" target="_blank">Kseniia Ilinykh</a> y
+      <a href="https://unsplash.com/es/fotos/gran-warhause-GK8x_XCcDZg" rel="noopener" target="_blank">Ruchindra Gunasekara</a> en Unsplash.
+    </p>
+  </div>
 </footer>
 
+<a class="ws-flotante" href="https://wa.me/56979500383?text=Hola%2C%20quiero%20informaci%C3%B3n%20sobre%20Auditor%C3%ADa%20de%20Inventario" target="_blank" rel="noopener" aria-label="Escribir por WhatsApp">
+  <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+  <span>Escríbenos</span>
+</a>
+
 <script>
-  // Único lugar donde vive la URL real de la app — se referencia
-  // desde CSS (var(--url-app)) para mostrarla arriba y se reinyecta
-  // aquí en los 3 enlaces porque los navegadores no resuelven
-  // custom properties dentro de atributos href.
+  // Único lugar donde vive la URL real de la app — se reinyecta en los
+  // enlaces de ingreso para cambiar de entorno editando una sola línea.
   var URL_APP = 'https://inventario-panel-mvc.onrender.com/login';
-  ['link-header', 'link-hero', 'link-cta'].forEach(function (id) {
+  ['link-header', 'link-hero', 'link-cta', 'link-footer'].forEach(function (id) {
     var el = document.getElementById(id);
     if (el) el.setAttribute('href', URL_APP);
   });
+
+  // Entrada escalonada al hacer scroll. Sin IntersectionObserver todo se
+  // muestra de inmediato (la clase .js solo oculta si esto puede revelar).
+  (function () {
+    var elementos = document.querySelectorAll('.revelar');
+    if (!('IntersectionObserver' in window)) {
+      elementos.forEach(function (el) { el.classList.add('visible'); });
+      return;
+    }
+    var observador = new IntersectionObserver(function (entradas) {
+      entradas.forEach(function (entrada) {
+        if (entrada.isIntersecting) {
+          entrada.target.classList.add('visible');
+          observador.unobserve(entrada.target);
+        }
+      });
+    }, { rootMargin: '0px 0px -8% 0px', threshold: 0.12 });
+    elementos.forEach(function (el) { observador.observe(el); });
+  })();
 </script>
 
 </body>
