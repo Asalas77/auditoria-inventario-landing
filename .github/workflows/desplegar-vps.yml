@@ -1,0 +1,106 @@
+name: Desplegar landing en el VPS
+
+# En cada pull request: revisa que el HTML esté sano. En cada push a
+# master (es decir, al hacer merge): copia la landing al VPS, donde la
+# sirve el servicio `landing` de /opt/inventario detrás de Caddy.
+# Render sigue publicando por su cuenta desde master.
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+
+concurrency:
+  group: landing-vps
+  cancel-in-progress: false
+
+jobs:
+  verificar:
+    name: Verificar HTML
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Revisar index.html
+        run: |
+          test -s index.html
+          python3 - <<'PY'
+          import re
+          import sys
+          from html.parser import HTMLParser
+
+          html = open('index.html', encoding='utf-8').read()
+          HTMLParser().feed(html)
+          errores = []
+          if '<title>' not in html:
+              errores.append('falta <title>')
+          url_app = re.findall(r"URL_APP = '([^']+)'", html)
+          if not url_app:
+              errores.append('no se encontró URL_APP (enlace de los botones de ingreso)')
+          print('Botones de ingreso apuntan a:', ', '.join(url_app) or '—')
+          if errores:
+              sys.exit('\n'.join(errores))
+          PY
+
+  desplegar-vps:
+    name: Desplegar en el VPS
+    needs: verificar
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    environment: produccion
+    env:
+      VPS_HOST: ${{ secrets.VPS_HOST }}
+      VPS_PORT: ${{ secrets.VPS_PORT }}
+      VPS_USER: ${{ secrets.VPS_USER }}
+      URL_PUBLICA: ${{ vars.LANDING_VPS_URL || 'https://landing-inventario.168-232-167-229.sslip.io' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verificar secretos
+        id: secretos
+        run: |
+          if [ -z "$VPS_HOST" ]; then
+            echo "::warning::Faltan los secretos VPS_* — se omite el despliegue al VPS."
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Configurar SSH
+        if: steps.secretos.outputs.ok == 'true'
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_vps
+          chmod 600 ~/.ssh/id_vps
+          if [ -n "${{ secrets.VPS_KNOWN_HOSTS }}" ]; then
+            printf '%s\n' "${{ secrets.VPS_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+          else
+            ssh-keyscan -p "$VPS_PORT" "$VPS_HOST" > ~/.ssh/known_hosts
+          fi
+      - name: Copiar la landing
+        if: steps.secretos.outputs.ok == 'true'
+        run: |
+          SSH="ssh -i $HOME/.ssh/id_vps -p $VPS_PORT $VPS_USER@$VPS_HOST"
+          # Se descomprime en una carpeta aparte y luego se copia ENCIMA de
+          # /opt/inventario/landing (no se reemplaza la carpeta: el contenedor
+          # la tiene montada y seguiría mirando la vieja).
+          tar -czf - --exclude=.git --exclude=.github . | $SSH '
+            set -e
+            rm -rf /opt/inventario/landing.nuevo
+            mkdir -p /opt/inventario/landing.nuevo /opt/inventario/landing
+            tar --no-same-owner -xzf - -C /opt/inventario/landing.nuevo
+            cp -a /opt/inventario/landing.nuevo/. /opt/inventario/landing/
+            rm -rf /opt/inventario/landing.nuevo
+          '
+      - name: Comprobar publicación
+        if: steps.secretos.outputs.ok == 'true'
+        run: |
+          esperado=$(sha256sum index.html | cut -d' ' -f1)
+          for i in $(seq 1 10); do
+            publicado=$(curl -sf "$URL_PUBLICA/?v=$GITHUB_SHA" | sha256sum | cut -d' ' -f1 || true)
+            if [ "$publicado" = "$esperado" ]; then
+              echo "Landing publicada en $URL_PUBLICA"
+              exit 0
+            fi
+            sleep 3
+          done
+          echo "::error::La landing publicada no coincide con la de este commit ($URL_PUBLICA)"
+          exit 1
